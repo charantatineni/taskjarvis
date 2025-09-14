@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		503E45D72E7661B1005ED9C4 /* TaskJarvisApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 503E45D62E7661AA005ED9C4 /* TaskJarvisApp.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		503E45A02E7660BA005ED9C4 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,22 +31,28 @@
 		503E45922E7660B8005ED9C4 /* TaskJarvis.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TaskJarvis.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		503E459F2E7660BA005ED9C4 /* TaskJarvisTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TaskJarvisTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		503E45A92E7660BA005ED9C4 /* TaskJarvisUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TaskJarvisUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		503E45D62E7661AA005ED9C4 /* TaskJarvisApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskJarvisApp.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		503E45942E7660B8005ED9C4 /* TaskJarvis */ = {
+		503E45BC2E7660CE005ED9C4 /* Models */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = TaskJarvis;
+			path = Models;
 			sourceTree = "<group>";
 		};
-		503E45A22E7660BA005ED9C4 /* TaskJarvisTests */ = {
+		503E45C02E766115005ED9C4 /* ViewModels */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = TaskJarvisTests;
+			path = ViewModels;
 			sourceTree = "<group>";
 		};
-		503E45AC2E7660BA005ED9C4 /* TaskJarvisUITests */ = {
+		503E45C52E766153005ED9C4 /* Views */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = TaskJarvisUITests;
+			path = Views;
+			sourceTree = "<group>";
+		};
+		503E45CF2E766183005ED9C4 /* Services */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Services;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -75,10 +85,12 @@
 		503E45892E7660B7005ED9C4 = {
 			isa = PBXGroup;
 			children = (
-				503E45942E7660B8005ED9C4 /* TaskJarvis */,
-				503E45A22E7660BA005ED9C4 /* TaskJarvisTests */,
-				503E45AC2E7660BA005ED9C4 /* TaskJarvisUITests */,
+				503E45BC2E7660CE005ED9C4 /* Models */,
 				503E45932E7660B8005ED9C4 /* Products */,
+				503E45C02E766115005ED9C4 /* ViewModels */,
+				503E45C52E766153005ED9C4 /* Views */,
+				503E45CF2E766183005ED9C4 /* Services */,
+				503E45D62E7661AA005ED9C4 /* TaskJarvisApp.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -108,7 +120,10 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				503E45942E7660B8005ED9C4 /* TaskJarvis */,
+				503E45BC2E7660CE005ED9C4 /* Models */,
+				503E45C02E766115005ED9C4 /* ViewModels */,
+				503E45C52E766153005ED9C4 /* Views */,
+				503E45CF2E766183005ED9C4 /* Services */,
 			);
 			name = TaskJarvis;
 			packageProductDependencies = (
@@ -130,9 +145,6 @@
 			dependencies = (
 				503E45A12E7660BA005ED9C4 /* PBXTargetDependency */,
 			);
-			fileSystemSynchronizedGroups = (
-				503E45A22E7660BA005ED9C4 /* TaskJarvisTests */,
-			);
 			name = TaskJarvisTests;
 			packageProductDependencies = (
 			);
@@ -152,9 +164,6 @@
 			);
 			dependencies = (
 				503E45AB2E7660BA005ED9C4 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				503E45AC2E7660BA005ED9C4 /* TaskJarvisUITests */,
 			);
 			name = TaskJarvisUITests;
 			packageProductDependencies = (
@@ -236,6 +245,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				503E45D72E7661B1005ED9C4 /* TaskJarvisApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
