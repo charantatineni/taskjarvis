@@ -8,33 +8,50 @@
 import SwiftUI
 
 struct TaskRow: View {
-    var task: Task
-    var onToggle: () -> Void
-
+    let task: Task
+    let onToggle: () -> Void
+    
     var body: some View {
         HStack {
             Button(action: onToggle) {
                 Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(task.isDone ? .green : .blue)
-                    .font(.title2)
+                    .foregroundColor(.blue)
             }
-
-            VStack(alignment: .leading, spacing: 4) {
+            
+            VStack(alignment: .leading) {
                 Text(task.title)
                     .font(.headline)
-                    .foregroundColor(Color(.label)) // adapts to dark/light
-                    .strikethrough(task.isDone, color: .gray)
                 Text(task.time, style: .time)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
-
             Spacer()
+            Text(task.repeatTag)
+                .font(.caption)
+                .foregroundColor(.secondary)
         }
         .padding()
-        .background(Color(.secondarySystemBackground)) // works in dark/light
+        .background(Color(.secondarySystemBackground))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(
+                    LinearGradient(
+                        colors: gradientColors,
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+        )
         .cornerRadius(12)
-        .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 2)
+    }
+    
+    private var gradientColors: [Color] {
+        if let label = task.label, let c = Color(hex: label.colorHex) {
+            return [c.opacity(0.8), c.opacity(0.4)]
+        }
+        return [Color.gray.opacity(0.3), Color.gray.opacity(0.1)]
     }
 }
+
 

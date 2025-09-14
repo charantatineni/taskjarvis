@@ -125,6 +125,43 @@ extension UIColor {
     }
 }
 
+extension Task {
+    var repeatTag: String {
+        switch repeatRule {
+        case .routines(let days):
+            if days == Set(Weekday.allCases) {
+                return "Daily"
+            } else if days == [.saturday, .sunday] {
+                return "Weekend"
+            } else if days == [.monday, .tuesday, .wednesday, .thursday, .friday] {
+                return "Weekday"
+            } else if days.count == 1 {
+                return days.first?.short ?? "Day"
+            } else {
+                return "Custom Days"
+            }
+
+        case .custom(let freq, let values):
+            switch freq {
+            case .monthly:
+                if values.count == 1 {
+                    return Calendar.current.shortMonthSymbols[(values.first ?? 1) - 1]
+                } else {
+                    return "Custom Months"
+                }
+            case .yearly:
+                if values.count == 1 {
+                    // safely get year from Date
+                    let year = Calendar.current.component(.year, from: Date())
+                    return "\(values.first ?? year)"
+                } else {
+                    return "Custom Years"
+                }
+            }
+        }
+    }
+}
+
 
 //
 //  Task.swift
