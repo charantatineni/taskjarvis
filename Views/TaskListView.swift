@@ -21,7 +21,6 @@ struct TaskListView: View {
         case futureStart
     }
     
-    
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             TabView(selection: $selectedTab) {
@@ -60,39 +59,16 @@ struct TaskListView: View {
             .padding(.trailing, 20)
             .padding(.bottom, 70) // move above tab bar
             .sheet(isPresented: $showingAddTask) {
-                AddTaskView(viewModel: viewModel)
+                EnhancedAddTaskView(viewModel: viewModel)
             }
             .sheet(item: $editingTask) { task in
-                AddTaskView(viewModel: viewModel, editTask: task)
+                EnhancedAddTaskView(viewModel: viewModel, editTask: task)
             }
         }
     }
     
-    
     private func taskListView(filter: TaskFilter) -> some View {
         VStack {
-            // Header
-            HStack {
-                // Profile circle
-                Circle()
-                    .fill(Color.orange)
-                    .frame(width: 36, height: 36)
-                    .overlay(Text("S").foregroundColor(.white).bold()) // replace with user initial
-                
-                Spacer()
-                
-                // Settings button
-                Button(action: {
-                    // open settings later
-                }) {
-                    Image(systemName: "gearshape.fill")
-                        .font(.title3)
-                        .foregroundColor(.red)
-                }
-            }
-            .padding(.horizontal)
-            .padding(.top, 12)
-            
             // Existing task list
             List {
                 ForEach(viewModel.filteredTasks(filter: filter)) { task in
@@ -122,3 +98,4 @@ struct TaskListView: View {
         }
     }
 }
+

@@ -1,4 +1,12 @@
 import Foundation
+//
+//  Task.swift
+//  TaskJarvis
+//
+//  Created by Charan Tatineni on 9/13/25.
+//
+
+import Foundation
 import SwiftUI
 
 enum Weekday: Int, CaseIterable, Codable { // Sun=1 per Calendar
@@ -70,7 +78,7 @@ struct LabelTag: Identifiable, Codable, Equatable {
 struct Task: Identifiable, Codable {
     let id: UUID
     var title: String
-    var description: String = ""   // ✅ not optional now
+    var description: String = ""
     var time: Date
     var startDate: Date?
     var repeatRule: RepeatRule
@@ -80,7 +88,7 @@ struct Task: Identifiable, Codable {
     var notificationOffset: Int = 0
 }
 
-// MARK: - Color helpers
+// MARK: - Color Helpers
 extension Color {
     init?(hex: String) {
         var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -97,8 +105,7 @@ extension Color {
     }
 }
 
-import SwiftUI
-
+// MARK: - UIColor Extensions
 extension UIColor {
     /// Initialize UIColor from SwiftUI Color safely
     convenience init(_ color: Color) {
@@ -125,6 +132,7 @@ extension UIColor {
     }
 }
 
+// MARK: - Task Extensions
 extension Task {
     var repeatTag: String {
         switch repeatRule {
@@ -161,12 +169,4 @@ extension Task {
         }
     }
 }
-
-
-//
-//  Task.swift
-//  TaskJarvis
-//
-//  Created by Charan Tatineni on 9/13/25.
-//
 

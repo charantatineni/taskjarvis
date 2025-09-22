@@ -4,4 +4,10 @@
    <FileRef
       location = "self:">
    </FileRef>
+   <FileRef
+      location = "group:LogoView.swift">
+   </FileRef>
+   <FileRef
+      location = "group:ErrorFixSummary.swift">
+   </FileRef>
 </Workspace>
