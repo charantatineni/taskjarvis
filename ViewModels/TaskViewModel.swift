@@ -267,7 +267,72 @@ final class TaskViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Task Filtering
+    // MARK: - Task Reset Management
+    
+    /// Reset completed tasks based on their repeat rules (called daily/on app launch)
+    func resetCompletedTasksIfNeeded() {
+        let calendar = Calendar.current
+        let now = Date()
+        
+        for i in tasks.indices {
+            let task = tasks[i]
+            
+            // Only reset tasks that are completed and have repeat rules
+            guard task.isDone else { continue }
+            
+            switch task.repeatRule {
+            case .routines(let weekdays):
+                if !weekdays.isEmpty {
+                    // Reset daily/weekly tasks at midnight
+                    let todayWeekday = Weekday(rawValue: calendar.component(.weekday, from: now)) ?? .sunday
+                    if weekdays.contains(todayWeekday) {
+                        // Check if we should reset (new day)
+                        if shouldResetTask(task, on: now) {
+                            tasks[i].isDone = false
+                            print("🔄 Reset task: \(task.title)")
+                        }
+                    }
+                }
+            case .custom(let frequency, let values):
+                switch frequency {
+                case .monthly:
+                    let todayDay = calendar.component(.day, from: now)
+                    if values.contains(todayDay) && shouldResetTask(task, on: now) {
+                        tasks[i].isDone = false
+                        print("🔄 Reset monthly task: \(task.title)")
+                    }
+                case .yearly:
+                    let todayYear = calendar.component(.year, from: now)
+                    if (values.contains(todayYear) || values.isEmpty) && shouldResetTask(task, on: now) {
+                        tasks[i].isDone = false
+                        print("🔄 Reset yearly task: \(task.title)")
+                    }
+                }
+            }
+        }
+        
+        // Save changes if any tasks were reset
+        saveTasks()
+    }
+    
+    /// Check if a task should be reset based on its last completion time
+    private func shouldResetTask(_ task: Task, on date: Date) -> Bool {
+        // For now, we'll implement a simple daily reset logic
+        // In a more sophisticated app, you'd store the last completion date
+        let calendar = Calendar.current
+        let taskTime = task.time
+        
+        // Create today's version of the task time
+        let todayTaskTime = calendar.date(bySettingHour: calendar.component(.hour, from: taskTime),
+                                         minute: calendar.component(.minute, from: taskTime),
+                                         second: 0,
+                                         of: date)
+        
+        // Reset if current time has passed today's task time
+        return date >= (todayTaskTime ?? date)
+    }
+    
+    // MARK: - Enhanced Task Filtering
     func filteredTasksForFutureStart() -> [Task] {
         tasks.filter { ($0.startDate ?? Date.distantPast) > Date() }
     }

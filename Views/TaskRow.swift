@@ -13,22 +13,48 @@ struct TaskRow: View {
     
     var body: some View {
         HStack {
-            Button(action: onToggle) {
-                Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(.blue)
-            }
-            
             VStack(alignment: .leading) {
                 Text(task.title)
                     .font(.headline)
+                    .strikethrough(task.isDone)
+                    .foregroundColor(task.isDone ? .secondary : .primary)
+                
                 Text(task.time, style: .time)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
+                
+                if !task.description.isEmpty {
+                    Text(task.description)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                }
             }
+            
             Spacer()
-            Text(task.repeatTag)
-                .font(.caption)
-                .foregroundColor(.secondary)
+            
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(task.repeatTag)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                Text(task.nextOccurrenceText)
+                    .font(.caption2)
+                    .foregroundColor(.accentColor)
+                    .fontWeight(.medium)
+                
+                // Show completion status without circle
+                if task.isDone {
+                    Text("✓ Done")
+                        .font(.caption2)
+                        .foregroundColor(.green)
+                        .fontWeight(.semibold)
+                }
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onToggle()
         }
         .padding()
         .background(Color(.secondarySystemBackground))

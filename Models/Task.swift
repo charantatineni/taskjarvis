@@ -142,29 +142,79 @@ extension Task {
             } else if days == [.saturday, .sunday] {
                 return "Weekend"
             } else if days == [.monday, .tuesday, .wednesday, .thursday, .friday] {
-                return "Weekday"
+                return "Weekdays"
             } else if days.count == 1 {
                 return days.first?.short ?? "Day"
+            } else if days.count > 1 {
+                let sortedDays = days.sorted { $0.rawValue < $1.rawValue }
+                return sortedDays.map(\.short).joined(separator: ", ")
             } else {
-                return "Custom Days"
+                return "Never"
             }
 
         case .custom(let freq, let values):
             switch freq {
             case .monthly:
                 if values.count == 1 {
-                    return Calendar.current.shortMonthSymbols[(values.first ?? 1) - 1]
+                    return "Monthly (\(values.first!))"
+                } else if values.count > 1 {
+                    return "Monthly (\(values.count) days)"
                 } else {
-                    return "Custom Months"
+                    return "Monthly"
                 }
             case .yearly:
                 if values.count == 1 {
-                    // safely get year from Date
-                    let year = Calendar.current.component(.year, from: Date())
-                    return "\(values.first ?? year)"
+                    return "Yearly (\(values.first!))"
+                } else if values.count > 1 {
+                    return "Yearly (\(values.count) years)"
                 } else {
-                    return "Custom Years"
+                    return "Yearly"
                 }
+            }
+        }
+    }
+    
+    var nextOccurrenceText: String {
+        let calendar = Calendar.current
+        let now = Date()
+        
+        switch repeatRule {
+        case .routines(let days):
+            if days.isEmpty { return "Never" }
+            
+            // Find next occurrence
+            for i in 0...7 {
+                let futureDate = calendar.date(byAdding: .day, value: i, to: now)!
+                let futureWeekday = Weekday(rawValue: calendar.component(.weekday, from: futureDate)) ?? .sunday
+                
+                if days.contains(futureWeekday) {
+                    if calendar.isDateInToday(futureDate) {
+                        return "Today"
+                    } else if calendar.isDateInTomorrow(futureDate) {
+                        return "Tomorrow"
+                    } else {
+                        let formatter = DateFormatter()
+                        formatter.dateFormat = "EEEE"
+                        return formatter.string(from: futureDate)
+                    }
+                }
+            }
+            return "Next week"
+            
+        case .custom(let frequency, let values):
+            switch frequency {
+            case .monthly:
+                let currentDay = calendar.component(.day, from: now)
+                if let nextDay = values.first(where: { $0 > currentDay }) {
+                    return "Day \(nextDay)"
+                } else if let firstDay = values.first {
+                    return "Next month, day \(firstDay)"
+                } else {
+                    return "Monthly"
+                }
+                
+            case .yearly:
+                return "Yearly"
             }
         }
     }

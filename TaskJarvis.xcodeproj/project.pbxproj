@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		503E45D72E7661B1005ED9C4 /* TaskJarvisApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 503E45D62E7661AA005ED9C4 /* TaskJarvisApp.swift */; };
+		509041772E86355F00AEEBAF /* MonthlyCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 509041762E86355E00AEEBAF /* MonthlyCalendarView.swift */; };
 		50D5F7D72E80E003007F24DF /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = 50D5F7D62E80E003007F24DF /* Auth */; };
 		50D5F7D92E80E003007F24DF /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = 50D5F7D82E80E003007F24DF /* Functions */; };
 		50D5F7DB2E80E003007F24DF /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = 50D5F7DA2E80E003007F24DF /* PostgREST */; };
@@ -48,6 +49,7 @@
 		503E459F2E7660BA005ED9C4 /* TaskJarvisTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TaskJarvisTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		503E45A92E7660BA005ED9C4 /* TaskJarvisUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TaskJarvisUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		503E45D62E7661AA005ED9C4 /* TaskJarvisApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskJarvisApp.swift; sourceTree = "<group>"; };
+		509041762E86355E00AEEBAF /* MonthlyCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthlyCalendarView.swift; sourceTree = "<group>"; };
 		50D5F7E82E80E3E2007F24DF /* logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = logo.png; sourceTree = "<group>"; };
 		50D5F7EA2E80E4B6007F24DF /* TaskJarvisTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskJarvisTests.swift; sourceTree = "<group>"; };
 		50D5F7EC2E80E4C4007F24DF /* LogoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogoView.swift; sourceTree = "<group>"; };
@@ -131,6 +133,7 @@
 				50D5F7F22E80E542007F24DF /* CompilationCheck.swift */,
 				50D5F7F42E80E567007F24DF /* FIXES_AND_IMPROVEMENTS.md */,
 				50D5F8052E80F736007F24DF /* AppIcons */,
+				509041762E86355E00AEEBAF /* MonthlyCalendarView.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -310,6 +313,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				50D5F7F32E80E542007F24DF /* CompilationCheck.swift in Sources */,
+				509041772E86355F00AEEBAF /* MonthlyCalendarView.swift in Sources */,
 				50D5F7ED2E80E4C4007F24DF /* LogoView.swift in Sources */,
 				50D5F7F12E80E518007F24DF /* AppAssets.swift in Sources */,
 				50D5F7EF2E80E4E2007F24DF /* SplashView.swift in Sources */,

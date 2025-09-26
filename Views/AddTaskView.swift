@@ -359,29 +359,34 @@ struct EnhancedAddTaskView: View {
             List {
                 Section {
                     ForEach(SmartRepeatRule.allCases, id: \.self) { option in
-                        Button(action: {
+                        HStack {
+                            Image(systemName: option.icon)
+                                .foregroundColor(.accentColor)
+                                .frame(width: 20)
+                            
+                            Text(option.displayName)
+                                .foregroundColor(.primary)
+                            
+                            Spacer()
+                            
+                            if repeatType == option {
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(.accentColor)
+                            }
+                        }
+                        .contentShape(Rectangle()) // Makes entire cell tappable
+                        .onTapGesture {
                             repeatType = option
                             if option == .never {
                                 showRepeatOptions = false
-                            }
-                        }) {
-                            HStack {
-                                Image(systemName: option.icon)
-                                    .foregroundColor(.accentColor)
-                                    .frame(width: 20)
-                                
-                                Text(option.displayName)
-                                    .foregroundColor(.primary)
-                                
-                                Spacer()
-                                
-                                if repeatType == option {
-                                    Image(systemName: "checkmark")
-                                        .foregroundColor(.accentColor)
+                            } else if option == .weekly {
+                                // Pre-populate with current weekday if none selected
+                                if selectedWeekdays.isEmpty {
+                                    let weekday = Weekday(rawValue: Calendar.current.component(.weekday, from: startDate)) ?? .monday
+                                    selectedWeekdays.insert(weekday)
                                 }
                             }
                         }
-                        .buttonStyle(PlainButtonStyle())
                     }
                 }
                 
@@ -390,7 +395,9 @@ struct EnhancedAddTaskView: View {
                     customRepeatSection
                     // Always show weekday selection for custom
                     weekdaySelectionSection
-                } else if repeatType == .weekly || repeatType == .biweekly {
+                } else if repeatType == .weekly {
+                    weekdaySelectionSection
+                } else if repeatType == .biweekly {
                     weekdaySelectionSection
                 }
                 
@@ -433,15 +440,24 @@ struct EnhancedAddTaskView: View {
                     }) {
                         Text(day.short)
                             .font(.caption)
+                            .fontWeight(.medium)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
+                            .padding(.vertical, 10)
                             .background(isSelected ? Color.accentColor : Color(.secondarySystemBackground))
                             .foregroundColor(isSelected ? .white : .primary)
                             .cornerRadius(8)
                     }
+                    .buttonStyle(PlainButtonStyle())
                 }
             }
             .padding(.vertical, 8)
+            
+            if selectedWeekdays.isEmpty {
+                Text("Select at least one day")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.top, 4)
+            }
         }
     }
     
@@ -493,11 +509,21 @@ struct EnhancedAddTaskView: View {
         case .weekdays:
             return "Monday to Friday"
         case .weekly:
-            let day = Calendar.current.component(.weekday, from: startDate)
-            let weekdayName = Calendar.current.weekdaySymbols[day - 1]
-            return "Every \(weekdayName)"
+            if selectedWeekdays.isEmpty {
+                let day = Calendar.current.component(.weekday, from: startDate)
+                let weekdayName = Calendar.current.weekdaySymbols[day - 1]
+                return "Every \(weekdayName)"
+            } else {
+                let days = selectedWeekdays.sorted { $0.rawValue < $1.rawValue }
+                return "Weekly on " + days.map(\.short).joined(separator: ", ")
+            }
         case .biweekly:
-            return "Every 2 weeks"
+            if selectedWeekdays.isEmpty {
+                return "Every 2 weeks"
+            } else {
+                let days = selectedWeekdays.sorted { $0.rawValue < $1.rawValue }
+                return "Bi-weekly on " + days.map(\.short).joined(separator: ", ")
+            }
         case .monthly:
             return monthlyRepeatDescription
         case .yearly:
@@ -599,8 +625,12 @@ struct EnhancedAddTaskView: View {
         case .weekdays:
             return .routines([.monday, .tuesday, .wednesday, .thursday, .friday])
         case .weekly:
-            let weekday = Weekday(rawValue: Calendar.current.component(.weekday, from: startDate)) ?? .monday
-            return .routines([weekday])
+            if selectedWeekdays.isEmpty {
+                let weekday = Weekday(rawValue: Calendar.current.component(.weekday, from: startDate)) ?? .monday
+                return .routines([weekday])
+            } else {
+                return .routines(selectedWeekdays)
+            }
         case .biweekly:
             if selectedWeekdays.isEmpty {
                 let weekday = Weekday(rawValue: Calendar.current.component(.weekday, from: startDate)) ?? .monday
@@ -636,7 +666,7 @@ struct EnhancedAddTaskView: View {
                 return .weekly
             } else {
                 selectedWeekdays = days
-                return .custom
+                return .weekly // Changed from .custom to .weekly for multiple day selection
             }
         case .custom(let frequency, _):
             switch frequency {
