@@ -5,6 +5,7 @@
 //  Created by Charan Tatineni on 9/13/25.
 //
 import SwiftUI
+import Foundation
 
 struct TaskListView: View {
     @ObservedObject var viewModel: TaskViewModel
@@ -83,24 +84,17 @@ struct TaskListView: View {
         ZStack(alignment: .bottomTrailing) {
             TabView(selection: $selectedTab) {
                 
-                todayTaskListView()
+                combinedTodayDailyView()
                     .tabItem {
-                        Label("Today", systemImage: "calendar")
+                        Label("Daily Routines", systemImage: "repeat.circle")
                     }
                     .tag(0)
-                
-                taskListView(filter: .daily)
-                    .tabItem {
-                        Label("Daily", systemImage: "repeat")
-                    }
-                    .tag(1)
                 
                 MonthlyCalendarView(viewModel: viewModel)
                     .tabItem {
                         Label("Monthly", systemImage: "calendar.badge.plus")
                     }
-                    .tag(2)
-                
+                    .tag(1)
                 
             }
             
@@ -134,85 +128,53 @@ struct TaskListView: View {
         }
     }
     
-    // Special today view with current date header and auto-scroll
-    private func todayTaskListView() -> some View {
+    // Simplified Daily Routines view
+    private func combinedTodayDailyView() -> some View {
         ScrollViewReader { proxy in
             ScrollView {
-                VStack(spacing: 0) {
-                    // Today's date header with progress
-                    TodayHeaderView(currentTime: currentTime, tasks: getTodayTasks())
+                VStack(spacing: 16) {
+                    // Fixed Header - Today's progress
+                    TodayHeaderView(currentTime: currentTime, tasks: getAllRoutines())
                         .padding(.horizontal)
-                        .padding(.bottom, 16)
                     
-                    // Time-based sections
-                    LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
-                        ForEach(TimeSection.allCases, id: \.self) { section in
-                            let sectionTasks = getTasksForSection(section, filter: .today)
+                    // All routines sorted by time with sections
+                    LazyVStack(spacing: 8) {
+                        let allRoutines = getAllRoutinesSortedByTime()
+                        let sectionsWithTasks = getSectionsWithTasks(tasks: allRoutines)
+                        
+                        ForEach(Array(sectionsWithTasks.enumerated()), id: \.offset) { sectionIndex, sectionData in
+                            let (section, sectionTasks) = sectionData
                             
-                            if !sectionTasks.isEmpty || shouldShowCurrentTimeIndicator(in: section) {
-                                Section {
-                                    LazyVStack(spacing: 8) {
-                                        ForEach(sectionTasks) { task in
-                                            TaskRow(task: task, onToggle: {
-                                                viewModel.toggleTask(task)
-                                            })
-                                            .onTapGesture { editingTask = task }
+                            // Section header (subtle)
+                            TimeSectionHeader(section: section)
+                                .padding(.horizontal)
+                                .padding(.top, sectionIndex == 0 ? 0 : 16)
+                            
+                            ForEach(Array(sectionTasks.enumerated()), id: \.element.id) { taskIndex, task in
+                                let globalIndex = getGlobalIndex(for: task, in: allRoutines)
+                                
+                                VStack(spacing: 0) {
+                                    // Add time indicator before this task if needed
+                                    if shouldShowTimeIndicatorBefore(task: task, allTasks: allRoutines, currentIndex: globalIndex) {
+                                        CurrentTimeIndicator(currentTime: currentTime, section: getCurrentTimeSection())
                                             .padding(.horizontal)
-                                            .contextMenu {
-                                                Button("Edit") { editingTask = task }
-                                                Button("Delete", role: .destructive) { 
-                                                    viewModel.deleteTask(task)
+                                            .padding(.vertical, 8)
+                                            .id("currentTime")
+                                    }
+                                    
+                                    // Task row with touch handling
+                                    SimpleTaskRow(
+                                        task: task,
+                                        onToggle: { touchPoint in
+                                            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                                                viewModel.toggleTask(task)
+                                                if task.isDone {
+                                                    // Trigger confetti from touch point
+                                                    triggerConfetti(at: touchPoint)
                                                 }
                                             }
                                         }
-                                        
-                                        // Add current time indicator if needed
-                                        if shouldShowCurrentTimeIndicator(in: section) {
-                                            CurrentTimeIndicator(currentTime: currentTime, section: section)
-                                                .padding(.horizontal)
-                                                .padding(.vertical, 4)
-                                                .id("currentTime") // For auto-scroll
-                                        }
-                                    }
-                                    .padding(.bottom, 16)
-                                } header: {
-                                    SectionHeader(section: section)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            .onAppear {
-                // Auto-scroll to current time section on first load
-                if !hasScrolledToCurrentTime {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        if shouldShowCurrentTimeIndicator(in: getCurrentTimeSection()) {
-                            withAnimation(.easeInOut(duration: 1.0)) {
-                                proxy.scrollTo("currentTime", anchor: .center)
-                            }
-                            hasScrolledToCurrentTime = true
-                        }
-                    }
-                }
-            }
-        }
-        .background(Color(.systemBackground))
-    }
-    
-    private func taskListView(filter: TaskFilter) -> some View {
-        ScrollView {
-            LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
-                ForEach(TimeSection.allCases, id: \.self) { section in
-                    let sectionTasks = getTasksForSection(section, filter: filter)
-                    
-                    if !sectionTasks.isEmpty {
-                        Section {
-                            LazyVStack(spacing: 8) {
-                                ForEach(sectionTasks) { task in
-                                    TaskRow(task: task, onToggle: {
-                                        viewModel.toggleTask(task)
-                                    })
+                                    )
                                     .onTapGesture { editingTask = task }
                                     .padding(.horizontal)
                                     .contextMenu {
@@ -222,89 +184,365 @@ struct TaskListView: View {
                                         }
                                     }
                                 }
-                                
-                                // Add current time indicator if needed
-                                if shouldShowCurrentTimeIndicator(in: section) {
-                                    CurrentTimeIndicator(currentTime: currentTime, section: section)
-                                        .padding(.horizontal)
-                                        .padding(.vertical, 4)
-                                }
                             }
-                            .padding(.bottom, 16)
-                        } header: {
-                            SectionHeader(section: section)
                         }
+                        
+                        // Add time indicator at the end if it's the last position
+                        if shouldShowTimeIndicatorAtEnd(allTasks: allRoutines) {
+                            CurrentTimeIndicator(currentTime: currentTime, section: getCurrentTimeSection())
+                                .padding(.horizontal)
+                                .padding(.vertical, 8)
+                                .id("currentTime")
+                        }
+                    }
+                    
+                    // Bottom padding for floating action button
+                    Spacer(minLength: 100)
+                }
+            }
+            .onAppear {
+                // Auto-scroll to current time indicator
+                if !hasScrolledToCurrentTime {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        withAnimation(.easeInOut(duration: 1.0)) {
+                            proxy.scrollTo("currentTime", anchor: .center)
+                        }
+                        hasScrolledToCurrentTime = true
                     }
                 }
             }
         }
         .background(Color(.systemBackground))
+        .overlay(confettiOverlay)
     }
     
-    private func getTasksForSection(_ section: TimeSection, filter: TaskFilter) -> [Task] {
-        let filteredTasks = viewModel.filteredTasks(filter: filter)
-        let sectionTasks = filteredTasks.filter { task in
-            let hour = Calendar.current.component(.hour, from: task.time)
-            return section.hourRange.contains(hour)
+
+    private func getAllRoutines() -> [Task] {
+        return viewModel.tasks.filter { task in
+            // Include all tasks that have repeat rules (are routines)
+            switch task.repeatRule {
+            case .routines(let days):
+                return !days.isEmpty
+            case .custom(_, let values):
+                return !values.isEmpty
+            }
+        }
+    }
+    
+    private func getAllRoutinesSortedByTime() -> [Task] {
+        return getAllRoutines().sorted { task1, task2 in
+            let calendar = Calendar.current
+            let time1Components = calendar.dateComponents([.hour, .minute], from: task1.time)
+            let time2Components = calendar.dateComponents([.hour, .minute], from: task2.time)
+            
+            let time1Minutes = (time1Components.hour ?? 0) * 60 + (time1Components.minute ?? 0)
+            let time2Minutes = (time2Components.hour ?? 0) * 60 + (time2Components.minute ?? 0)
+            
+            return time1Minutes < time2Minutes
+        }
+    }
+    
+    private func shouldShowTimeIndicatorBefore(task: Task, allTasks: [Task], currentIndex: Int) -> Bool {
+        let calendar = Calendar.current
+        let currentTimeComponents = calendar.dateComponents([.hour, .minute], from: currentTime)
+        let currentMinutes = (currentTimeComponents.hour ?? 0) * 60 + (currentTimeComponents.minute ?? 0)
+        
+        let taskTimeComponents = calendar.dateComponents([.hour, .minute], from: task.time)
+        let taskMinutes = (taskTimeComponents.hour ?? 0) * 60 + (taskTimeComponents.minute ?? 0)
+        
+        // Check if current time is before this task
+        if currentMinutes < taskMinutes {
+            // Check if this is the first task or current time is after the previous task
+            if currentIndex == 0 {
+                return true
+            } else {
+                let previousTask = allTasks[currentIndex - 1]
+                let previousTimeComponents = calendar.dateComponents([.hour, .minute], from: previousTask.time)
+                let previousMinutes = (previousTimeComponents.hour ?? 0) * 60 + (previousTimeComponents.minute ?? 0)
+                return currentMinutes > previousMinutes
+            }
         }
         
-        // Sort tasks by time within each section
-        return sectionTasks.sorted { task1, task2 in
-            task1.time < task2.time
+        return false
+    }
+    
+    private func shouldShowTimeIndicatorAtEnd(allTasks: [Task]) -> Bool {
+        guard !allTasks.isEmpty else { return false }
+        
+        let calendar = Calendar.current
+        let currentTimeComponents = calendar.dateComponents([.hour, .minute], from: currentTime)
+        let currentMinutes = (currentTimeComponents.hour ?? 0) * 60 + (currentTimeComponents.minute ?? 0)
+        
+        let lastTask = allTasks.last!
+        let lastTaskTimeComponents = calendar.dateComponents([.hour, .minute], from: lastTask.time)
+        let lastTaskMinutes = (lastTaskTimeComponents.hour ?? 0) * 60 + (lastTaskTimeComponents.minute ?? 0)
+        
+        return currentMinutes > lastTaskMinutes
+    }
+    
+    // Confetti animation state
+    @State private var showConfetti = false
+    @State private var confettiTrigger = 0
+    @State private var confettiOrigin = CGPoint.zero
+    
+    private func triggerConfetti(at point: CGPoint = CGPoint(x: UIScreen.main.bounds.width/2, y: UIScreen.main.bounds.height/2)) {
+        confettiOrigin = point
+        showConfetti = true
+        confettiTrigger += 1
+        
+        // Hide confetti after animation
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            showConfetti = false
         }
     }
     
-    private func shouldShowCurrentTimeIndicator(in section: TimeSection) -> Bool {
-        let currentHour = Calendar.current.component(.hour, from: currentTime)
-        return section.hourRange.contains(currentHour)
+    private var confettiOverlay: some View {
+        ZStack {
+            if showConfetti {
+                ConfettiView(trigger: confettiTrigger, origin: confettiOrigin)
+                    .allowsHitTesting(false)
+                    .ignoresSafeArea()
+            }
+        }
     }
     
+
     private func getCurrentTimeSection() -> TimeSection {
         let currentHour = Calendar.current.component(.hour, from: currentTime)
         return TimeSection.allCases.first { $0.hourRange.contains(currentHour) } ?? .morning
     }
     
-    private func getTodayTasks() -> [Task] {
-        let calendar = Calendar.current
-        let today = Date()
+    // Helper functions for sections
+    private func getSectionsWithTasks(tasks: [Task]) -> [(TimeSection, [Task])] {
+        var sectionsWithTasks: [(TimeSection, [Task])] = []
         
-        return viewModel.tasks.filter { task in
-            // Include tasks that should appear today based on their repeat rule and start date
-            guard let startDate = task.startDate else { return false }
+        for section in TimeSection.allCases {
+            let tasksInSection = tasks.filter { task in
+                let hour = Calendar.current.component(.hour, from: task.time)
+                return section.hourRange.contains(hour)
+            }
             
-            // Don't show tasks that haven't started yet
-            if startDate > today { return false }
+            if !tasksInSection.isEmpty {
+                sectionsWithTasks.append((section, tasksInSection))
+            }
+        }
+        
+        return sectionsWithTasks
+    }
+    
+    private func getGlobalIndex(for task: Task, in allTasks: [Task]) -> Int {
+        return allTasks.firstIndex(where: { $0.id == task.id }) ?? 0
+    }
+    
+
+}
+
+// MARK: - Simple Task Row (No repeat icons)
+struct SimpleTaskRow: View {
+    let task: Task
+    let onToggle: (CGPoint) -> Void
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(task.title)
+                    .font(.headline)
+                    .strikethrough(task.isDone)
+                    .foregroundColor(task.isDone ? .secondary : .primary)
+                
+                HStack {
+                    Text(task.time, style: .time)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    if !task.description.isEmpty {
+                        Text("• \(task.description)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+                
+                if let label = task.label {
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(Color(hex: label.colorHex) ?? .gray)
+                            .frame(width: 6, height: 6)
+                        Text(label.name)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
             
-            switch task.repeatRule {
-            case .routines(let weekdays):
-                if weekdays.isEmpty { return false }
-                let todayWeekday = Weekday(rawValue: calendar.component(.weekday, from: today)) ?? .sunday
-                return weekdays.contains(todayWeekday)
-            case .custom(let frequency, let values):
-                switch frequency {
-                case .monthly:
-                    let todayDay = calendar.component(.day, from: today)
-                    return values.contains(todayDay)
-                case .yearly:
-                    let todayYear = calendar.component(.year, from: today)
-                    return values.contains(todayYear) || values.isEmpty
+            Spacer()
+            
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(task.nextOccurrenceText)
+                    .font(.caption2)
+                    .foregroundColor(Color.accentColor)
+                    .fontWeight(.medium)
+                
+                if task.isDone {
+                    Text("✓ Done")
+                        .font(.caption2)
+                        .foregroundColor(.green)
+                        .fontWeight(.semibold)
+                }
+            }
+        }
+        .contentShape(Rectangle())
+        .background(
+            GeometryReader { geometry in
+                Color.clear
+                    .gesture(
+                        TapGesture()
+                            .onEnded { _ in
+                                let bounds = geometry.frame(in: .global)
+                                let touchPoint = CGPoint(
+                                    x: bounds.midX,
+                                    y: bounds.midY
+                                )
+                                onToggle(touchPoint)
+                            }
+                    )
+            }
+        )
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(
+                    LinearGradient(
+                        colors: gradientColors,
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+        )
+        .cornerRadius(12)
+    }
+    
+    private var gradientColors: [Color] {
+        if task.isDone {
+            return [Color.green.opacity(0.6), Color.green.opacity(0.3)]
+        } else if let label = task.label, let c = Color(hex: label.colorHex) {
+            return [c.opacity(0.8), c.opacity(0.4)]
+        }
+        return [Color.gray.opacity(0.3), Color.gray.opacity(0.1)]
+    }
+}
+
+// MARK: - Confetti Animation View
+struct ConfettiView: View {
+    let trigger: Int
+    let origin: CGPoint
+    
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                ForEach(0..<50, id: \.self) { index in
+                    ConfettiPiece(
+                        geometry: geometry,
+                        trigger: trigger,
+                        delay: Double(index) * 0.02,
+                        origin: origin
+                    )
                 }
             }
         }
     }
 }
 
-private var todayDateFormatter: DateFormatter {
-    let formatter = DateFormatter()
-    formatter.dateStyle = .full
-    formatter.timeStyle = .none
-    return formatter
+struct ConfettiPiece: View {
+    let geometry: GeometryProxy
+    let trigger: Int
+    let delay: Double
+    let origin: CGPoint
+    
+    @State private var isAnimating = false
+    @State private var opacity: Double = 1.0
+    @State private var rotation: Double = 0
+    @State private var position: CGPoint = .zero
+    
+    private let colors: [Color] = [
+        .red, .blue, .green, .yellow, .orange, .purple, .pink, .cyan
+    ]
+    
+    private let shapes = ["circle.fill", "diamond.fill", "star.fill", "heart.fill"]
+    
+    var body: some View {
+        Image(systemName: shapes.randomElement() ?? "star.fill")
+            .font(.system(size: CGFloat.random(in: 8...16)))
+            .foregroundColor(colors.randomElement() ?? .blue)
+            .opacity(opacity)
+            .rotationEffect(.degrees(rotation))
+            .position(position)
+            .onAppear {
+                setupInitialPosition()
+            }
+            .onChange(of: trigger) { _ in
+                startAnimation()
+            }
+    }
+    
+    private func setupInitialPosition() {
+        // Start from the origin point (touch location)
+        position = origin
+    }
+    
+    private func startAnimation() {
+        // Reset state
+        isAnimating = false
+        opacity = 1.0
+        rotation = 0
+        setupInitialPosition()
+        
+        // Start animation with delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            withAnimation(.easeOut(duration: 3.0)) {
+                // Explode outward from the origin
+                let angle = Double.random(in: 0...2 * Double.pi)
+                let velocity = CGFloat.random(in: 100...300)
+                let gravity = CGFloat.random(in: 200...400)
+                
+                // Calculate final position with physics simulation
+                let deltaX = cos(angle) * velocity
+                let deltaY = sin(angle) * velocity
+                
+                position.x += deltaX
+                position.y += deltaY + gravity // Add gravity effect
+                
+                // Rotate
+                rotation = Double.random(in: 360...720)
+                
+                // Fade out towards the end
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    withAnimation(.easeOut(duration: 1.0)) {
+                        opacity = 0
+                    }
+                }
+            }
+            
+            isAnimating = true
+        }
+    }
 }
 
-// MARK: - Today Header View with Progress
+
+
+// MARK: - Today Header View (Updated for Daily Routines)
 struct TodayHeaderView: View {
     let currentTime: Date
     let tasks: [Task]
+    
+    private var todayDateFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .full
+        formatter.timeStyle = .none
+        return formatter
+    }
     
     private var completedCount: Int {
         tasks.filter { $0.isDone }.count
@@ -324,7 +562,7 @@ struct TodayHeaderView: View {
         VStack(spacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Today")
+                    Text("Daily Routines")
                         .font(.largeTitle)
                         .fontWeight(.bold)
                     
@@ -339,7 +577,7 @@ struct TodayHeaderView: View {
                     Text("\(tasks.count)")
                         .font(.title2)
                         .fontWeight(.semibold)
-                    Text("tasks")
+                    Text("routines")
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
@@ -405,7 +643,8 @@ struct TodayHeaderView: View {
             }
         }
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
     
     private var motivationalIcon: String {
@@ -424,66 +663,26 @@ struct TodayHeaderView: View {
         
         switch (progress, hour) {
         case (0.0, 5..<12):
-            return "Good morning! Ready to tackle today's tasks?"
+            return "Good morning! Ready to tackle your routines?"
         case (0.0, 12..<17):
-            return "Good afternoon! Time to make progress on your goals."
+            return "Good afternoon! Time to stay consistent with your habits."
         case (0.0, 17..<21):
-            return "Good evening! Let's wrap up today's important tasks."
+            return "Good evening! Let's maintain our daily discipline."
         case (0.0, 21...23), (0.0, 0..<5):
-            return "It's getting late, but you can still get things done!"
+            return "Night routines are just as important!"
         
         case (0.1..<0.5, _):
-            return "Great start! Keep the momentum going."
+            return "Great momentum! Keep building those habits."
         case (0.5..<0.8, _):
-            return "You're halfway there! Excellent progress."
+            return "Halfway there! Consistency is key."
         case (0.8..<1.0, _):
-            return "Almost done! You've got this."
+            return "Almost perfect! You're crushing it."
         case (1.0, _):
-            return "Perfect! All tasks completed. Well done! 🎉"
+            return "Perfect day! All routines completed! 🎉"
         
         default:
-            return "Every small step counts. You've got this!"
+            return "Every routine matters. You've got this!"
         }
-    }
-}
-
-struct SectionHeader: View {
-    let section: TaskListView.TimeSection
-    
-    var body: some View {
-        HStack {
-            Image(systemName: section.icon)
-                .foregroundColor(section.primarySkyColor)
-                .font(.title2)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(section.rawValue)
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                
-                Text(section.timeRange)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 12)
-        .background(
-            LinearGradient(
-                colors: [section.primarySkyColor.opacity(0.1), section.primarySkyColor.opacity(0.05)],
-                startPoint: .leading,
-                endPoint: .trailing
-            ),
-            in: RoundedRectangle(cornerRadius: 12)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(section.primarySkyColor.opacity(0.3), lineWidth: 1)
-        )
-        .padding(.horizontal)
-        .padding(.bottom, 8)
     }
 }
 
@@ -559,6 +758,50 @@ struct CurrentTimeIndicator: View {
         .onAppear {
             animationOffset = 1.0
         }
+    }
+}
+
+// MARK: - Time Section Header (Subtle)
+struct TimeSectionHeader: View {
+    let section: TaskListView.TimeSection
+    
+    var body: some View {
+        HStack {
+            HStack(spacing: 8) {
+                Image(systemName: section.icon)
+                    .font(.caption)
+                    .foregroundColor(section.primarySkyColor.opacity(0.7))
+                
+                Text(section.rawValue)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.secondary)
+                
+                Text(section.timeRange)
+                    .font(.caption2)
+                    .foregroundColor(Color(.tertiaryLabel))
+            }
+            
+            Spacer()
+            
+            // Subtle decorative line
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            section.primarySkyColor.opacity(0.3),
+                            section.primarySkyColor.opacity(0.1),
+                            Color.clear
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(height: 1)
+                .frame(maxWidth: 100)
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 4)
     }
 }
 

@@ -67,6 +67,8 @@ struct EnhancedAddTaskView: View {
     @State private var endRepeatOption: EndRepeatType = .never
     @State private var endDate: Date = Calendar.current.date(byAdding: .year, value: 1, to: Date()) ?? Date()
     @State private var occurrenceCount: Int = 10
+    @State private var selectedMonthlyDates: Set<Int> = []
+    @State private var showingMonthlyDatePicker = false
     
     enum MonthlyRepeatType: CaseIterable {
         case dayOfMonth // e.g., "Monthly on day 15"
@@ -275,7 +277,7 @@ struct EnhancedAddTaskView: View {
             VStack(spacing: 0) {
                 HStack {
                     Image(systemName: repeatType.icon)
-                        .foregroundColor(.accentColor)
+                        .foregroundColor(Color.accentColor)
                         .frame(width: 20)
                     
                     VStack(alignment: .leading, spacing: 2) {
@@ -361,7 +363,7 @@ struct EnhancedAddTaskView: View {
                     ForEach(SmartRepeatRule.allCases, id: \.self) { option in
                         HStack {
                             Image(systemName: option.icon)
-                                .foregroundColor(.accentColor)
+                                .foregroundColor(Color.accentColor)
                                 .frame(width: 20)
                             
                             Text(option.displayName)
@@ -371,7 +373,7 @@ struct EnhancedAddTaskView: View {
                             
                             if repeatType == option {
                                 Image(systemName: "checkmark")
-                                    .foregroundColor(.accentColor)
+                                    .foregroundColor(Color.accentColor)
                             }
                         }
                         .contentShape(Rectangle()) // Makes entire cell tappable
@@ -390,11 +392,11 @@ struct EnhancedAddTaskView: View {
                     }
                 }
                 
-                // Custom options based on selected repeat type
+                // Enhanced custom options based on selected repeat type
                 if repeatType == .custom {
-                    customRepeatSection
-                    // Always show weekday selection for custom
-                    weekdaySelectionSection
+                    customIntervalSection
+                    specificDaysOfWeekSection
+                    specificDaysOfMonthSection
                 } else if repeatType == .weekly {
                     weekdaySelectionSection
                 } else if repeatType == .biweekly {
@@ -419,10 +421,146 @@ struct EnhancedAddTaskView: View {
         }
     }
     
-    private var customRepeatSection: some View {
+    private var customIntervalSection: some View {
         Section("Custom Interval") {
             Stepper("Every \(customInterval) day\(customInterval == 1 ? "" : "s")",
                    value: $customInterval, in: 1...365)
+        }
+    }
+    
+    private var specificDaysOfWeekSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: "calendar.day.timeline.left")
+                        .foregroundColor(Color.accentColor)
+                    Text("Specific Days of Week")
+                        .font(.headline)
+                        .fontWeight(.medium)
+                    Spacer()
+                }
+                
+                Text("Select which days of the week this task should repeat")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
+                    ForEach(Weekday.allCases, id: \.self) { day in
+                        let isSelected = selectedWeekdays.contains(day)
+                        Button(action: {
+                            if isSelected {
+                                selectedWeekdays.remove(day)
+                            } else {
+                                selectedWeekdays.insert(day)
+                            }
+                        }) {
+                            VStack(spacing: 4) {
+                                Text(day.short)
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                                
+                                Circle()
+                                    .fill(isSelected ? Color.accentColor : Color(.systemGray4))
+                                    .frame(width: 8, height: 8)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(isSelected ? Color.accentColor.opacity(0.1) : Color(.systemGray6))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 2)
+                            )
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                }
+                
+                if selectedWeekdays.isEmpty {
+                    Text("Select at least one day")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                        .padding(.top, 4)
+                }
+            }
+            .padding(.vertical, 8)
+        }
+    }
+    
+    private var specificDaysOfMonthSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: "calendar.badge.plus")
+                        .foregroundColor(Color.accentColor)
+                    Text("Specific Days of Month")
+                        .font(.headline)
+                        .fontWeight(.medium)
+                    Spacer()
+                    
+                    Button(action: {
+                        showingMonthlyDatePicker.toggle()
+                    }) {
+                        Text("Select Dates")
+                            .font(.caption)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.accentColor)
+                            .foregroundColor(.white)
+                            .clipShape(Capsule())
+                    }
+                }
+                
+                Text("Choose specific dates each month when this task should repeat")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                if selectedMonthlyDates.isEmpty {
+                    Text("No dates selected")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 8))
+                } else {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(Array(selectedMonthlyDates).sorted(), id: \.self) { date in
+                                VStack(spacing: 4) {
+                                    Text("\(date)")
+                                        .font(.title3)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.white)
+                                    
+                                    Text(dateOrdinal(date))
+                                        .font(.caption2)
+                                        .foregroundColor(.white.opacity(0.8))
+                                }
+                                .frame(width: 50, height: 50)
+                                .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 12))
+                                .overlay(
+                                    Button(action: {
+                                        selectedMonthlyDates.remove(date)
+                                    }) {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .font(.caption)
+                                            .foregroundColor(.white)
+                                            .background(Color.accentColor, in: Circle())
+                                    }
+                                    .offset(x: 18, y: -18)
+                                )
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                }
+            }
+            .padding(.vertical, 8)
+        }
+        .sheet(isPresented: $showingMonthlyDatePicker) {
+            MonthlyDatePickerView(selectedDates: $selectedMonthlyDates)
         }
     }
     
@@ -531,11 +669,18 @@ struct EnhancedAddTaskView: View {
             formatter.dateFormat = "MMMM d"
             return "Every \(formatter.string(from: startDate))"
         case .custom:
-            if selectedWeekdays.isEmpty {
-                return "Every \(customInterval) day\(customInterval == 1 ? "" : "s")"
-            } else {
+            if !selectedWeekdays.isEmpty {
                 let days = selectedWeekdays.sorted { $0.rawValue < $1.rawValue }
-                return days.map(\.short).joined(separator: ", ")
+                return "Weekly: " + days.map(\.short).joined(separator: ", ")
+            } else if !selectedMonthlyDates.isEmpty {
+                let dates = Array(selectedMonthlyDates).sorted()
+                if dates.count <= 3 {
+                    return "Monthly: " + dates.map(String.init).joined(separator: ", ")
+                } else {
+                    return "Monthly: \(dates.count) dates"
+                }
+            } else {
+                return "Every \(customInterval) day\(customInterval == 1 ? "" : "s")"
             }
         }
     }
@@ -645,10 +790,12 @@ struct EnhancedAddTaskView: View {
             let year = Calendar.current.component(.year, from: startDate)
             return .custom(.yearly, [year])
         case .custom:
-            if selectedWeekdays.isEmpty {
-                return .routines(Set(Weekday.allCases))
-            } else {
+            if !selectedWeekdays.isEmpty {
                 return .routines(selectedWeekdays)
+            } else if !selectedMonthlyDates.isEmpty {
+                return .custom(.monthly, Array(selectedMonthlyDates).sorted())
+            } else {
+                return .routines(Set(Weekday.allCases))
             }
         }
     }
@@ -668,10 +815,15 @@ struct EnhancedAddTaskView: View {
                 selectedWeekdays = days
                 return .weekly // Changed from .custom to .weekly for multiple day selection
             }
-        case .custom(let frequency, _):
+        case .custom(let frequency, let values):
             switch frequency {
             case .monthly:
-                return .monthly
+                if values.count > 1 {
+                    selectedMonthlyDates = Set(values)
+                    return .custom
+                } else {
+                    return .monthly
+                }
             case .yearly:
                 return .yearly
             }
@@ -691,6 +843,114 @@ struct EnhancedAddTaskView: View {
             }
         }
         return suffix
+    }
+    
+    private func dateOrdinal(_ day: Int) -> String {
+        return "\(day)\(ordinalSuffix(for: day))"
+    }
+}
+
+// MARK: - Monthly Date Picker View
+struct MonthlyDatePickerView: View {
+    @Binding var selectedDates: Set<Int>
+    @Environment(\.presentationMode) var presentationMode
+    
+    private let daysInMonth = Array(1...31)
+    private let columns = Array(repeating: GridItem(.flexible()), count: 7)
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 20) {
+                    Text("Select dates when your task should repeat each month")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding()
+                    
+                    LazyVGrid(columns: columns, spacing: 12) {
+                        ForEach(daysInMonth, id: \.self) { day in
+                            let isSelected = selectedDates.contains(day)
+                            
+                            Button(action: {
+                                if isSelected {
+                                    selectedDates.remove(day)
+                                } else {
+                                    selectedDates.insert(day)
+                                }
+                            }) {
+                                VStack(spacing: 4) {
+                                    Text("\(day)")
+                                        .font(.title3)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(isSelected ? .white : .primary)
+                                    
+                                    Text(dateOrdinal(day))
+                                        .font(.caption2)
+                                        .foregroundColor(isSelected ? .white.opacity(0.8) : .secondary)
+                                }
+                                .frame(width: 45, height: 50)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(isSelected ? Color.accentColor : Color(.systemGray6))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(isSelected ? Color.accentColor : Color(.systemGray4), lineWidth: 1)
+                                )
+                                .scaleEffect(isSelected ? 1.05 : 1.0)
+                                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSelected)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                    }
+                    .padding()
+                    
+                    if !selectedDates.isEmpty {
+                        VStack(spacing: 8) {
+                            Text("Selected: \(selectedDates.count) date\(selectedDates.count == 1 ? "" : "s")")
+                                .font(.headline)
+                            
+                            Text(selectedDates.sorted().map { "\($0)" }.joined(separator: ", "))
+                                .font(.body)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding()
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                        .padding()
+                    }
+                }
+            }
+            .navigationTitle("Monthly Dates")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                }
+            }
+        }
+    }
+    
+    private func dateOrdinal(_ day: Int) -> String {
+        let suffix: String
+        switch day % 100 {
+        case 11...13: suffix = "th"
+        default:
+            switch day % 10 {
+            case 1: suffix = "st"
+            case 2: suffix = "nd"
+            case 3: suffix = "rd"
+            default: suffix = "th"
+            }
+        }
+        return "\(day)\(suffix)"
     }
 }
 
