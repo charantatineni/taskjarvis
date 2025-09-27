@@ -15,6 +15,11 @@ final class DataManager: ObservableObject {
     private let tasksKey = "TaskJarvis_Tasks"
     private let labelsKey = "TaskJarvis_Labels"
     
+    // Documents directory for file-based storage
+    var documentsDirectory: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+    }
+    
     private init() {}
     
     // MARK: - Task Persistence

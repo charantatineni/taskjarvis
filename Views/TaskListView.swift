@@ -9,14 +9,15 @@ import Foundation
 
 struct TaskListView: View {
     @ObservedObject var viewModel: TaskViewModel
+    @StateObject private var listViewModel = ListViewModel()
     @State private var showingAddTask = false
     @State private var editingTask: Task? = nil
     @State private var selectedTab = 0
     @State private var currentTime = Date()
     @State private var hasScrolledToCurrentTime = false
     
-    // Timer to update current time for the time indicator
-    let timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
+    // Timer to update current time for the time indicator - reduced frequency
+    let timer = Timer.publish(every: 300, on: .main, in: .common).autoconnect() // Update every 5 minutes
     
     enum TaskFilter {
         case all
@@ -63,10 +64,10 @@ struct TaskListView: View {
         // Sky-themed colors for time indicators
         var skyColors: [Color] {
             switch self {
-            case .morning: return [.yellow.opacity(0.8), .white.opacity(0.9), .blue.opacity(0.3)]
-            case .afternoon: return [.white.opacity(0.9), .blue.opacity(0.2), .cyan.opacity(0.4)]
+            case .morning: return [.yellow.opacity(0.8), Color.white.opacity(0.9), .blue.opacity(0.3)]
+            case .afternoon: return [Color.white.opacity(0.9), .blue.opacity(0.2), .cyan.opacity(0.4)]
             case .evening: return [.orange.opacity(0.9), .red.opacity(0.6), .purple.opacity(0.4)]
-            case .night: return [.black.opacity(0.8), .purple.opacity(0.7), .indigo.opacity(0.5)]
+            case .night: return [Color.black.opacity(0.8), .purple.opacity(0.7), .indigo.opacity(0.5)]
             }
         }
         
@@ -96,20 +97,33 @@ struct TaskListView: View {
                     }
                     .tag(1)
                 
+                ListsMainView(viewModel: listViewModel)
+                    .tabItem {
+                        Label("Lists", systemImage: "list.bullet.rectangle")
+                    }
+                    .tag(2)
+                
             }
             
-            // Floating Action Button above tab bar
-            Button(action: { showingAddTask.toggle() }) {
-                Image(systemName: "plus")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundColor(.white)
-                    .padding()
-                    .background(Color.red)
-                    .clipShape(Circle())
-                    .shadow(radius: 5)
+            // Floating Action Button - only show on non-lists tabs with red color
+            Group {
+                if selectedTab != 2 {
+                    Button(action: { 
+                        showingAddTask.toggle() 
+                    }) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(Color.red)
+                            .clipShape(Circle())
+                            .shadow(radius: 5)
+                    }
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 70) // move above tab bar
+                }
             }
-            .padding(.trailing, 20)
-            .padding(.bottom, 70) // move above tab bar
+            .opacity(selectedTab == 2 ? 0 : 1) // Hide content on Lists tab since it has its own
             .sheet(isPresented: $showingAddTask) {
                 EnhancedAddTaskView(viewModel: viewModel)
             }
@@ -175,7 +189,15 @@ struct TaskListView: View {
                                             }
                                         }
                                     )
-                                    .onTapGesture { editingTask = task }
+                                    .onTapGesture { 
+                                        withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                                            viewModel.toggleTask(task)
+                                            if task.isDone {
+                                                // Trigger confetti from center of task
+                                                triggerConfetti()
+                                            }
+                                        }
+                                    }
                                     .padding(.horizontal)
                                     .contextMenu {
                                         Button("Edit") { editingTask = task }
@@ -366,7 +388,7 @@ struct SimpleTaskRow: View {
                 if let label = task.label {
                     HStack(spacing: 4) {
                         Circle()
-                            .fill(Color(hex: label.colorHex) ?? .gray)
+                            .fill(Color(listHex: label.colorHex))
                             .frame(width: 6, height: 6)
                         Text(label.name)
                             .font(.caption2)
@@ -427,10 +449,11 @@ struct SimpleTaskRow: View {
     private var gradientColors: [Color] {
         if task.isDone {
             return [Color.green.opacity(0.6), Color.green.opacity(0.3)]
-        } else if let label = task.label, let c = Color(hex: label.colorHex) {
+        } else if let label = task.label {
+            let c = Color(listHex: label.colorHex)
             return [c.opacity(0.8), c.opacity(0.4)]
         }
-        return [Color.gray.opacity(0.3), Color.gray.opacity(0.1)]
+        return [Color(.systemGray).opacity(0.3), Color(.systemGray).opacity(0.1)]
     }
 }
 
@@ -725,7 +748,7 @@ struct CurrentTimeIndicator: View {
                     Rectangle()
                         .fill(
                             LinearGradient(
-                                colors: [.clear, .white.opacity(0.9), .clear],
+                                colors: [.clear, Color.white.opacity(0.9), .clear],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
@@ -738,14 +761,15 @@ struct CurrentTimeIndicator: View {
                         )
                 }
             
-            // Current time display with sky color theme
-            Text(currentTime, style: .time)
-                .font(.caption)
-                .fontWeight(.medium)
-                .foregroundColor(section.primarySkyColor)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(section.primarySkyColor.opacity(0.1), in: Capsule())
+            // Current time display without "Modified" label
+            VStack(alignment: .leading, spacing: 2) {
+                Text(currentTime, style: .time)
+                    .font(.caption2)
+                    .foregroundColor(section.primarySkyColor)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(section.primarySkyColor.opacity(0.1), in: Capsule())
             
             Text("NOW")
                 .font(.caption2)
@@ -770,7 +794,8 @@ struct TimeSectionHeader: View {
             HStack(spacing: 8) {
                 Image(systemName: section.icon)
                     .font(.caption)
-                    .foregroundColor(section.primarySkyColor.opacity(0.7))
+                    .foregroundColor(section.primarySkyColor)
+                    .opacity(0.7)
                 
                 Text(section.rawValue)
                     .font(.caption)
