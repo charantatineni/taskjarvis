@@ -8,6 +8,14 @@
 
 /* Begin PBXBuildFile section */
 		503E45D72E7661B1005ED9C4 /* TaskJarvisApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 503E45D62E7661AA005ED9C4 /* TaskJarvisApp.swift */; };
+		5058458A2E882DBC0009F1EB /* ListModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 505845892E882DBC0009F1EB /* ListModels.swift */; };
+		5058458C2E882DE00009F1EB /* ListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5058458B2E882DE00009F1EB /* ListViewModel.swift */; };
+		5058458E2E882E100009F1EB /* ListsMainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5058458D2E882E100009F1EB /* ListsMainView.swift */; };
+		505845902E882E550009F1EB /* ListDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5058458F2E882E550009F1EB /* ListDetailView.swift */; };
+		505845922E882E910009F1EB /* ListSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 505845912E882E910009F1EB /* ListSheets.swift */; };
+		505845942E882ECC0009F1EB /* RichTextEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 505845932E882ECC0009F1EB /* RichTextEditor.swift */; };
+		505845962E882F2A0009F1EB /* ListsCompilationTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 505845952E882F2A0009F1EB /* ListsCompilationTest.swift */; };
+		505845982E882F520009F1EB /* LISTS_FEATURE_DOCUMENTATION.md in Resources */ = {isa = PBXBuildFile; fileRef = 505845972E882F520009F1EB /* LISTS_FEATURE_DOCUMENTATION.md */; };
 		509041772E86355F00AEEBAF /* MonthlyCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 509041762E86355E00AEEBAF /* MonthlyCalendarView.swift */; };
 		50D5F7D72E80E003007F24DF /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = 50D5F7D62E80E003007F24DF /* Auth */; };
 		50D5F7D92E80E003007F24DF /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = 50D5F7D82E80E003007F24DF /* Functions */; };
@@ -49,6 +57,14 @@
 		503E459F2E7660BA005ED9C4 /* TaskJarvisTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TaskJarvisTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		503E45A92E7660BA005ED9C4 /* TaskJarvisUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TaskJarvisUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		503E45D62E7661AA005ED9C4 /* TaskJarvisApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskJarvisApp.swift; sourceTree = "<group>"; };
+		505845892E882DBC0009F1EB /* ListModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListModels.swift; sourceTree = "<group>"; };
+		5058458B2E882DE00009F1EB /* ListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListViewModel.swift; sourceTree = "<group>"; };
+		5058458D2E882E100009F1EB /* ListsMainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListsMainView.swift; sourceTree = "<group>"; };
+		5058458F2E882E550009F1EB /* ListDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListDetailView.swift; sourceTree = "<group>"; };
+		505845912E882E910009F1EB /* ListSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListSheets.swift; sourceTree = "<group>"; };
+		505845932E882ECC0009F1EB /* RichTextEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RichTextEditor.swift; sourceTree = "<group>"; };
+		505845952E882F2A0009F1EB /* ListsCompilationTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListsCompilationTest.swift; sourceTree = "<group>"; };
+		505845972E882F520009F1EB /* LISTS_FEATURE_DOCUMENTATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = LISTS_FEATURE_DOCUMENTATION.md; sourceTree = "<group>"; };
 		509041762E86355E00AEEBAF /* MonthlyCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthlyCalendarView.swift; sourceTree = "<group>"; };
 		50D5F7E82E80E3E2007F24DF /* logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = logo.png; sourceTree = "<group>"; };
 		50D5F7EA2E80E4B6007F24DF /* TaskJarvisTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskJarvisTests.swift; sourceTree = "<group>"; };
@@ -134,6 +150,14 @@
 				50D5F7F42E80E567007F24DF /* FIXES_AND_IMPROVEMENTS.md */,
 				50D5F8052E80F736007F24DF /* AppIcons */,
 				509041762E86355E00AEEBAF /* MonthlyCalendarView.swift */,
+				505845892E882DBC0009F1EB /* ListModels.swift */,
+				5058458B2E882DE00009F1EB /* ListViewModel.swift */,
+				5058458D2E882E100009F1EB /* ListsMainView.swift */,
+				5058458F2E882E550009F1EB /* ListDetailView.swift */,
+				505845912E882E910009F1EB /* ListSheets.swift */,
+				505845932E882ECC0009F1EB /* RichTextEditor.swift */,
+				505845952E882F2A0009F1EB /* ListsCompilationTest.swift */,
+				505845972E882F520009F1EB /* LISTS_FEATURE_DOCUMENTATION.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -283,6 +307,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				505845982E882F520009F1EB /* LISTS_FEATURE_DOCUMENTATION.md in Resources */,
 				50D5F7E92E80E3E2007F24DF /* logo.png in Resources */,
 				50D5F8062E80F736007F24DF /* playstore.png in Resources */,
 				50D5F8072E80F736007F24DF /* Assets.xcassets in Resources */,
@@ -312,12 +337,19 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				505845942E882ECC0009F1EB /* RichTextEditor.swift in Sources */,
+				505845922E882E910009F1EB /* ListSheets.swift in Sources */,
 				50D5F7F32E80E542007F24DF /* CompilationCheck.swift in Sources */,
 				509041772E86355F00AEEBAF /* MonthlyCalendarView.swift in Sources */,
 				50D5F7ED2E80E4C4007F24DF /* LogoView.swift in Sources */,
 				50D5F7F12E80E518007F24DF /* AppAssets.swift in Sources */,
+				5058458E2E882E100009F1EB /* ListsMainView.swift in Sources */,
 				50D5F7EF2E80E4E2007F24DF /* SplashView.swift in Sources */,
+				5058458C2E882DE00009F1EB /* ListViewModel.swift in Sources */,
 				50D5F7EB2E80E4B6007F24DF /* TaskJarvisTests.swift in Sources */,
+				505845902E882E550009F1EB /* ListDetailView.swift in Sources */,
+				505845962E882F2A0009F1EB /* ListsCompilationTest.swift in Sources */,
+				5058458A2E882DBC0009F1EB /* ListModels.swift in Sources */,
 				503E45D72E7661B1005ED9C4 /* TaskJarvisApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
