@@ -45,7 +45,7 @@ struct MonthlyCalendarView: View {
             Button(action: previousMonth) {
                 Image(systemName: "chevron.left")
                     .font(.title2)
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(Color.accentColor)
             }
             
             Spacer()
@@ -59,7 +59,7 @@ struct MonthlyCalendarView: View {
             Button(action: nextMonth) {
                 Image(systemName: "chevron.right")
                     .font(.title2)
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(Color.accentColor)
             }
         }
         .padding()
@@ -228,7 +228,7 @@ struct MonthlyCalendarView: View {
     }
 }
 
-// MARK: - Calendar Day View (GitHub-style)
+// MARK: - Calendar Day View (GitHub-style with themed filled squares)
 struct CalendarDayView: View {
     let date: Date
     let taskCount: Int
@@ -239,9 +239,9 @@ struct CalendarDayView: View {
     private var intensity: Double {
         switch taskCount {
         case 0: return 0.0
-        case 1: return 0.25
+        case 1: return 0.3
         case 2: return 0.5
-        case 3: return 0.75
+        case 3: return 0.7
         default: return 1.0
         }
     }
@@ -252,56 +252,72 @@ struct CalendarDayView: View {
         return formatter.string(from: date)
     }
     
+    // Get the appropriate theme based on the primary task time or current time
+    private var dominantTimeTheme: TaskListView.TimeSection {
+        // For simplicity, we'll use the current hour to determine theme
+        // In a more sophisticated version, you'd analyze the actual task times
+        let hour = Calendar.current.component(.hour, from: Date())
+        return TaskListView.TimeSection.allCases.first { $0.hourRange.contains(hour) } ?? .morning
+    }
+    
     var body: some View {
-        VStack(spacing: 2) {
+        ZStack {
+            // Background square with theme-based color intensity
+            RoundedRectangle(cornerRadius: 8)
+                .fill(backgroundColorWithIntensity)
+                .frame(width: 40, height: 40)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(isSelected ? Color.white : Color.clear, lineWidth: 2)
+                )
+            
+            // Day number text
             Text(dayNumber)
                 .font(.system(size: 16, weight: isToday ? .bold : .medium))
                 .foregroundColor(textColor)
-            
-            // GitHub-style activity indicator
-            RoundedRectangle(cornerRadius: 2)
-                .fill(intensityColor)
-                .frame(width: 28, height: 4)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 2)
-                        .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 2)
-                )
+                .shadow(color: shadowColor, radius: shadowIntensity, x: 0, y: 1)
         }
-        .frame(width: 40, height: 40)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(backgroundColor)
-        )
         .scaleEffect(isSelected ? 1.1 : 1.0)
+        .shadow(
+            color: isSelected ? dominantTimeTheme.primarySkyColor.opacity(0.3) : .clear,
+            radius: isSelected ? 8 : 0
+        )
         .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSelected)
+    }
+    
+    private var backgroundColorWithIntensity: Color {
+        if !isCurrentMonth {
+            return Color(.systemGray6)
+        } else if taskCount == 0 {
+            return Color(.systemGray5)
+        } else {
+            // Use the dominant time theme with intensity
+            return dominantTimeTheme.primarySkyColor.opacity(intensity)
+        }
     }
     
     private var textColor: Color {
         if !isCurrentMonth {
             return .secondary
-        } else if isToday {
+        } else if taskCount == 0 {
             return .primary
+        } else if intensity > 0.5 {
+            // High intensity background needs white text
+            return .white
         } else {
             return .primary
         }
     }
     
-    private var backgroundColor: Color {
-        if isToday {
-            return .accentColor.opacity(0.1)
-        } else if isSelected {
-            return .accentColor.opacity(0.05)
-        } else {
-            return .clear
+    private var shadowColor: Color {
+        if taskCount > 0 && intensity > 0.3 {
+            return .black.opacity(0.3)
         }
+        return .clear
     }
     
-    private var intensityColor: Color {
-        if taskCount == 0 {
-            return Color(.systemGray5)
-        } else {
-            return .accentColor.opacity(intensity)
-        }
+    private var shadowIntensity: CGFloat {
+        intensity > 0.5 ? 1 : 0
     }
 }
 
