@@ -6,17 +6,19 @@
 //
 import SwiftUI
 import Foundation
+import UIKit
 
 struct TaskListView: View {
     @ObservedObject var viewModel: TaskViewModel
+    @StateObject private var listViewModel = ListViewModel()
     @State private var showingAddTask = false
     @State private var editingTask: Task? = nil
     @State private var selectedTab = 0
     @State private var currentTime = Date()
     @State private var hasScrolledToCurrentTime = false
     
-    // Timer to update current time for the time indicator
-    let timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
+    // Timer to update current time for the time indicator - reduced frequency
+    let timer = Timer.publish(every: 300, on: .main, in: .common).autoconnect() // Update every 5 minutes
     
     enum TaskFilter {
         case all
@@ -63,10 +65,10 @@ struct TaskListView: View {
         // Sky-themed colors for time indicators
         var skyColors: [Color] {
             switch self {
-            case .morning: return [.yellow.opacity(0.8), .white.opacity(0.9), .blue.opacity(0.3)]
-            case .afternoon: return [.white.opacity(0.9), .blue.opacity(0.2), .cyan.opacity(0.4)]
+            case .morning: return [.yellow.opacity(0.8), Color.white.opacity(0.9), .blue.opacity(0.3)]
+            case .afternoon: return [Color.white.opacity(0.9), .blue.opacity(0.2), .cyan.opacity(0.4)]
             case .evening: return [.orange.opacity(0.9), .red.opacity(0.6), .purple.opacity(0.4)]
-            case .night: return [.black.opacity(0.8), .purple.opacity(0.7), .indigo.opacity(0.5)]
+            case .night: return [Color.black.opacity(0.8), .purple.opacity(0.7), .indigo.opacity(0.5)]
             }
         }
         
@@ -96,20 +98,33 @@ struct TaskListView: View {
                     }
                     .tag(1)
                 
+                ListsMainView(viewModel: listViewModel)
+                    .tabItem {
+                        Label("Lists", systemImage: "list.bullet.rectangle")
+                    }
+                    .tag(2)
+                
             }
             
-            // Floating Action Button above tab bar
-            Button(action: { showingAddTask.toggle() }) {
-                Image(systemName: "plus")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundColor(.white)
-                    .padding()
-                    .background(Color.red)
-                    .clipShape(Circle())
-                    .shadow(radius: 5)
+            // Floating Action Button - only show on non-lists tabs with red color
+            Group {
+                if selectedTab != 2 {
+                    Button(action: { 
+                        showingAddTask.toggle() 
+                    }) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(Color.red)
+                            .clipShape(Circle())
+                            .shadow(radius: 5)
+                    }
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 70) // move above tab bar
+                }
             }
-            .padding(.trailing, 20)
-            .padding(.bottom, 70) // move above tab bar
+            .opacity(selectedTab == 2 ? 0 : 1) // Hide content on Lists tab since it has its own
             .sheet(isPresented: $showingAddTask) {
                 EnhancedAddTaskView(viewModel: viewModel)
             }
@@ -168,14 +183,13 @@ struct TaskListView: View {
                                         onToggle: { touchPoint in
                                             withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                                                 viewModel.toggleTask(task)
-                                                if task.isDone {
-                                                    // Trigger confetti from touch point
+                                                // Fetch updated state after toggle to decide on confetti
+                                                if let updated = viewModel.tasks.first(where: { $0.id == task.id }), updated.isDone {
                                                     triggerConfetti(at: touchPoint)
                                                 }
                                             }
                                         }
                                     )
-                                    .onTapGesture { editingTask = task }
                                     .padding(.horizontal)
                                     .contextMenu {
                                         Button("Edit") { editingTask = task }
@@ -218,13 +232,58 @@ struct TaskListView: View {
     
 
     private func getAllRoutines() -> [Task] {
+        let calendar = Calendar.current
+        let now = Date()
+
+        // Helper: compare dates by day only
+        func isOnOrBeforeToday(_ date: Date) -> Bool {
+            let startOfGiven = calendar.startOfDay(for: date)
+            let startOfToday = calendar.startOfDay(for: now)
+            return startOfGiven <= startOfToday
+        }
+
+        let todayWeekday = Weekday(rawValue: calendar.component(.weekday, from: now)) ?? .sunday
+        let todayDay = calendar.component(.day, from: now)
+        let todayMonth = calendar.component(.month, from: now)
+        let todayYear = calendar.component(.year, from: now)
+
         return viewModel.tasks.filter { task in
-            // Include all tasks that have repeat rules (are routines)
+            // Respect start date: do not show tasks that start in the future
+            if let sd = task.startDate, !isOnOrBeforeToday(sd) {
+                return false
+            }
+
             switch task.repeatRule {
             case .routines(let days):
-                return !days.isEmpty
-            case .custom(_, let values):
-                return !values.isEmpty
+                if days.isEmpty {
+                    // Treat as one-off: show only on startDate == today
+                    if let sd = task.startDate {
+                        return calendar.isDateInToday(sd)
+                    } else {
+                        // If no startDate provided, default to showing today
+                        return true
+                    }
+                } else {
+                    // Show only if today's weekday is included
+                    return days.contains(todayWeekday)
+                }
+
+            case .custom(let freq, let values):
+                switch freq {
+                case .monthly:
+                    // Show only if today's day-of-month is included
+                    return values.contains(todayDay)
+
+                case .yearly:
+                    // Yearly semantics: if values is empty, treat as every year on startDate's month/day
+                    // If values contains specific years, include only for those years on the startDate's month/day
+                    guard let sd = task.startDate else { return false }
+                    let sdMonth = calendar.component(.month, from: sd)
+                    let sdDay = calendar.component(.day, from: sd)
+                    guard sdMonth == todayMonth && sdDay == todayDay else { return false }
+                    if values.isEmpty { return true }
+                    return values.contains(todayYear)
+                }
             }
         }
     }
@@ -291,7 +350,7 @@ struct TaskListView: View {
         confettiTrigger += 1
         
         // Hide confetti after animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
             showConfetti = false
         }
     }
@@ -366,7 +425,7 @@ struct SimpleTaskRow: View {
                 if let label = task.label {
                     HStack(spacing: 4) {
                         Circle()
-                            .fill(Color(hex: label.colorHex) ?? .gray)
+                            .fill(Color(listHex: label.colorHex))
                             .frame(width: 6, height: 6)
                         Text(label.name)
                             .font(.caption2)
@@ -392,20 +451,9 @@ struct SimpleTaskRow: View {
             }
         }
         .contentShape(Rectangle())
-        .background(
-            GeometryReader { geometry in
-                Color.clear
-                    .gesture(
-                        TapGesture()
-                            .onEnded { _ in
-                                let bounds = geometry.frame(in: .global)
-                                let touchPoint = CGPoint(
-                                    x: bounds.midX,
-                                    y: bounds.midY
-                                )
-                                onToggle(touchPoint)
-                            }
-                    )
+        .overlay(
+            DoubleTapCapture { point in
+                onToggle(point)
             }
         )
         .padding()
@@ -427,10 +475,46 @@ struct SimpleTaskRow: View {
     private var gradientColors: [Color] {
         if task.isDone {
             return [Color.green.opacity(0.6), Color.green.opacity(0.3)]
-        } else if let label = task.label, let c = Color(hex: label.colorHex) {
+        } else if let label = task.label {
+            let c = Color(listHex: label.colorHex)
             return [c.opacity(0.8), c.opacity(0.4)]
         }
-        return [Color.gray.opacity(0.3), Color.gray.opacity(0.1)]
+        return [Color(.systemGray).opacity(0.3), Color(.systemGray).opacity(0.1)]
+    }
+}
+
+// MARK: - Double Tap Capture (UIKit-backed)
+struct DoubleTapCapture: UIViewRepresentable {
+    var onDoubleTap: (CGPoint) -> Void
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView(frame: .zero)
+        view.backgroundColor = .clear
+        view.isUserInteractionEnabled = true
+
+        let recognizer = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleDoubleTap(_:)))
+        recognizer.numberOfTapsRequired = 2
+        recognizer.cancelsTouchesInView = false
+        view.addGestureRecognizer(recognizer)
+
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) { }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onDoubleTap: onDoubleTap)
+    }
+
+    class Coordinator: NSObject {
+        let onDoubleTap: (CGPoint) -> Void
+        init(onDoubleTap: @escaping (CGPoint) -> Void) { self.onDoubleTap = onDoubleTap }
+
+        @objc func handleDoubleTap(_ recognizer: UITapGestureRecognizer) {
+            // Location in window coordinates (nil -> window), aligns with .global
+            let pointInWindow = recognizer.location(in: nil)
+            onDoubleTap(pointInWindow)
+        }
     }
 }
 
@@ -446,7 +530,7 @@ struct ConfettiView: View {
                     ConfettiPiece(
                         geometry: geometry,
                         trigger: trigger,
-                        delay: Double(index) * 0.02,
+                        delay: Double.random(in: 0...0.05),
                         origin: origin
                     )
                 }
@@ -465,6 +549,7 @@ struct ConfettiPiece: View {
     @State private var opacity: Double = 1.0
     @State private var rotation: Double = 0
     @State private var position: CGPoint = .zero
+    @State private var offset: CGSize = .zero
     
     private let colors: [Color] = [
         .red, .blue, .green, .yellow, .orange, .purple, .pink, .cyan
@@ -479,8 +564,10 @@ struct ConfettiPiece: View {
             .opacity(opacity)
             .rotationEffect(.degrees(rotation))
             .position(position)
+            .offset(offset)
             .onAppear {
                 setupInitialPosition()
+                startAnimation()
             }
             .onChange(of: trigger) { _ in
                 startAnimation()
@@ -488,8 +575,12 @@ struct ConfettiPiece: View {
     }
     
     private func setupInitialPosition() {
-        // Start from the origin point (touch location)
-        position = origin
+        // Convert global tap location (window coords) to this GeometryReader's local space
+        let frame = geometry.frame(in: .global)
+        let localX = origin.x - frame.minX
+        let localY = origin.y - frame.minY
+        position = CGPoint(x: localX, y: localY)
+        offset = .zero
     }
     
     private func startAnimation() {
@@ -501,25 +592,25 @@ struct ConfettiPiece: View {
         
         // Start animation with delay
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-            withAnimation(.easeOut(duration: 3.0)) {
+            withAnimation(.easeOut(duration: 0.8)) {
                 // Explode outward from the origin
-                let angle = Double.random(in: 0...2 * Double.pi)
-                let velocity = CGFloat.random(in: 100...300)
-                let gravity = CGFloat.random(in: 200...400)
+                let angle = Double.random(in: 0...(2 * Double.pi))
+                let velocity = CGFloat.random(in: 80...160)
                 
-                // Calculate final position with physics simulation
-                let deltaX = cos(angle) * velocity
-                let deltaY = sin(angle) * velocity
+                // Quick radial burst with minimal drift
+                let radialX = cos(angle) * velocity
+                let radialY = sin(angle) * velocity
+                let driftX = CGFloat.random(in: -10...10)
+                let driftY = CGFloat.random(in: -10...10)
                 
-                position.x += deltaX
-                position.y += deltaY + gravity // Add gravity effect
+                offset = CGSize(width: radialX + driftX, height: radialY + driftY)
                 
                 // Rotate
-                rotation = Double.random(in: 360...720)
+                rotation = Double.random(in: 180...360)
                 
                 // Fade out towards the end
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                    withAnimation(.easeOut(duration: 1.0)) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    withAnimation(.easeOut(duration: 0.3)) {
                         opacity = 0
                     }
                 }
@@ -725,7 +816,7 @@ struct CurrentTimeIndicator: View {
                     Rectangle()
                         .fill(
                             LinearGradient(
-                                colors: [.clear, .white.opacity(0.9), .clear],
+                                colors: [.clear, Color.white.opacity(0.9), .clear],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
@@ -738,14 +829,15 @@ struct CurrentTimeIndicator: View {
                         )
                 }
             
-            // Current time display with sky color theme
-            Text(currentTime, style: .time)
-                .font(.caption)
-                .fontWeight(.medium)
-                .foregroundColor(section.primarySkyColor)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(section.primarySkyColor.opacity(0.1), in: Capsule())
+            // Current time display without "Modified" label
+            VStack(alignment: .leading, spacing: 2) {
+                Text(currentTime, style: .time)
+                    .font(.caption2)
+                    .foregroundColor(section.primarySkyColor)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(section.primarySkyColor.opacity(0.1), in: Capsule())
             
             Text("NOW")
                 .font(.caption2)
@@ -770,7 +862,8 @@ struct TimeSectionHeader: View {
             HStack(spacing: 8) {
                 Image(systemName: section.icon)
                     .font(.caption)
-                    .foregroundColor(section.primarySkyColor.opacity(0.7))
+                    .foregroundColor(section.primarySkyColor)
+                    .opacity(0.7)
                 
                 Text(section.rawValue)
                     .font(.caption)

@@ -198,7 +198,7 @@ struct EnhancedAddTaskView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(viewModel.labels) { tag in
-                        let color = Color(hex: tag.colorHex) ?? .gray
+                        let color = Color(listHex: tag.colorHex)
                         Button {
                             selectedLabel = (selectedLabel == tag) ? nil : tag
                         } label: {
@@ -536,7 +536,8 @@ struct EnhancedAddTaskView: View {
                                     
                                     Text(dateOrdinal(date))
                                         .font(.caption2)
-                                        .foregroundColor(.white.opacity(0.8))
+                                        .foregroundColor(.white)
+                                        .opacity(0.8)
                                 }
                                 .frame(width: 50, height: 50)
                                 .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 12))
@@ -887,7 +888,8 @@ struct MonthlyDatePickerView: View {
                                     
                                     Text(dateOrdinal(day))
                                         .font(.caption2)
-                                        .foregroundColor(isSelected ? .white.opacity(0.8) : .secondary)
+                                        .foregroundColor(isSelected ? .white : .secondary)
+                                        .opacity(isSelected ? 0.8 : 1.0)
                                 }
                                 .frame(width: 45, height: 50)
                                 .background(

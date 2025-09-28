@@ -73,10 +73,11 @@ struct TaskRow: View {
     }
     
     private var gradientColors: [Color] {
-        if let label = task.label, let c = Color(hex: label.colorHex) {
+        if let label = task.label {
+            let c = Color(listHex: label.colorHex)
             return [c.opacity(0.8), c.opacity(0.4)]
         }
-        return [Color.gray.opacity(0.3), Color.gray.opacity(0.1)]
+        return [Color(.systemGray).opacity(0.3), Color(.systemGray).opacity(0.1)]
     }
 }
 

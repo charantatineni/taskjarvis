@@ -205,24 +205,49 @@ final class TaskViewModel: ObservableObject {
 
         switch task.repeatRule {
         case .routines(let days):
-            // schedule repeated by weekday at that hour/min
-            for d in (days.isEmpty ? Set(Weekday.allCases) : days) {
-                var dc = DateComponents()
-                dc.weekday = d.rawValue
-                dc.hour = cal.component(.hour, from: baseTime)
-                dc.minute = cal.component(.minute, from: baseTime)
-                let trig = UNCalendarNotificationTrigger(dateMatching: dc, repeats: true)
-                let req = UNNotificationRequest(identifier: "\(task.id.uuidString)-\(d.rawValue)", content: content, trigger: trig)
-                UNUserNotificationCenter.current().add(req) { error in
-                    if let error = error {
-                        print("❌ Notification scheduling failed: \(error.localizedDescription)")
+            if days.isEmpty {
+                // One-off: schedule a single notification at startDate + time - offset
+                let cal = Calendar.current
+                let baseTime = task.time.addingTimeInterval(TimeInterval(-task.notificationOffset * 60))
+                let targetDate: Date? = {
+                    if let sd = task.startDate {
+                        var comps = cal.dateComponents([.year, .month, .day], from: sd)
+                        comps.hour = cal.component(.hour, from: baseTime)
+                        comps.minute = cal.component(.minute, from: baseTime)
+                        return cal.date(from: comps)
+                    } else {
+                        return baseTime
+                    }
+                }()
+                if let fire = targetDate, fire > Date() {
+                    let trig = UNTimeIntervalNotificationTrigger(timeInterval: max(5, fire.timeIntervalSinceNow), repeats: false)
+                    let req = UNNotificationRequest(identifier: "\(task.id.uuidString)-oneoff", content: content, trigger: trig)
+                    UNUserNotificationCenter.current().add(req) { error in
+                        if let error = error {
+                            print("❌ Notification scheduling failed: \(error.localizedDescription)")
+                        }
                     }
                 }
-            }
-            // if startDate exists and is in future, also schedule a one-off first fire
-            if let f = firstDate, f > Date() {
-                let trig = UNTimeIntervalNotificationTrigger(timeInterval: max(5, f.timeIntervalSinceNow), repeats: false)
-                UNUserNotificationCenter.current().add(.init(identifier: "\(task.id.uuidString)-first", content: content, trigger: trig))
+            } else {
+                // schedule repeated by weekday at that hour/min
+                for d in days {
+                    var dc = DateComponents()
+                    dc.weekday = d.rawValue
+                    dc.hour = cal.component(.hour, from: baseTime)
+                    dc.minute = cal.component(.minute, from: baseTime)
+                    let trig = UNCalendarNotificationTrigger(dateMatching: dc, repeats: true)
+                    let req = UNNotificationRequest(identifier: "\(task.id.uuidString)-\(d.rawValue)", content: content, trigger: trig)
+                    UNUserNotificationCenter.current().add(req) { error in
+                        if let error = error {
+                            print("❌ Notification scheduling failed: \(error.localizedDescription)")
+                        }
+                    }
+                }
+                // if startDate exists and is in future, also schedule a one-off first fire
+                if let f = firstDate, f > Date() {
+                    let trig = UNTimeIntervalNotificationTrigger(timeInterval: max(5, f.timeIntervalSinceNow), repeats: false)
+                    UNUserNotificationCenter.current().add(.init(identifier: "\(task.id.uuidString)-first", content: content, trigger: trig))
+                }
             }
 
         case .custom(let freq, let values):
@@ -411,3 +436,4 @@ final class TaskViewModel: ObservableObject {
         print("📝 Created \(sampleTasks.count) sample tasks")
     }
 }
+
