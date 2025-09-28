@@ -7,9 +7,10 @@ struct ListsMainView: View {
     @State private var searchText = ""
     @State private var showingStarredSection = false
     @State private var selectedList: SmartList? = nil
+    @State private var path: [SmartList] = []
     
     var body: some View {
-        NavigationView {
+        NavigationStack(path: $path) {
             ScrollView {
                 VStack(spacing: 16) {
                     // Header Section
@@ -49,6 +50,9 @@ struct ListsMainView: View {
             .background(Color(.systemBackground))
             .navigationTitle("Lists")
             .navigationBarTitleDisplayMode(.large)
+            .navigationDestination(for: SmartList.self) { list in
+                ListDetailView(list: list, viewModel: viewModel)
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
@@ -74,30 +78,23 @@ struct ListsMainView: View {
             }
         }
         .searchable(text: $searchText, prompt: "Search lists and items...")
-        .overlay(
-            // Floating Action Button for Lists - only show when not in detail view
+        .overlay(alignment: .bottomTrailing) {
             Group {
-                if selectedList == nil {
-                    VStack {
-                        Spacer()
-                        HStack {
-                            Spacer()
-                            Button(action: { showingAddListSheet = true }) {
-                                Image(systemName: "plus")
-                                    .font(.system(size: 28, weight: .bold))
-                                    .foregroundColor(.white)
-                                    .padding()
-                                    .background(.blue)
-                                    .clipShape(Circle())
-                                    .shadow(radius: 5)
-                            }
-                            .padding(.trailing, 20)
-                            .padding(.bottom, 70) // Above tab bar
-                        }
+                if path.isEmpty {
+                    Button(action: { showingAddListSheet = true }) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(.blue)
+                            .clipShape(Circle())
+                            .shadow(radius: 5)
                     }
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 70)
                 }
             }
-        )
+        }
         .sheet(isPresented: $showingAddListSheet) {
             AddListSheet(viewModel: viewModel)
         }
@@ -228,7 +225,7 @@ struct SearchResultsSection: View {
             } else {
                 LazyVStack(spacing: 8) {
                     ForEach(searchResults) { list in
-                        NavigationLink(destination: ListDetailView(list: list, viewModel: viewModel)) {
+                        NavigationLink(value: list) {
                             ListCardView(list: list, viewModel: viewModel)
                         }
                         .buttonStyle(PlainButtonStyle())
@@ -266,7 +263,7 @@ struct StarredListsSection: View {
             
             LazyVStack(spacing: 8) {
                 ForEach(starredLists) { list in
-                    NavigationLink(destination: ListDetailView(list: list, viewModel: viewModel)) {
+                    NavigationLink(value: list) {
                         ListCardView(list: list, viewModel: viewModel, showStarBadge: true)
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -336,7 +333,7 @@ struct GroupSectionView: View {
             if group.isExpanded {
                 LazyVStack(spacing: 8) {
                     ForEach(listsInGroup) { list in
-                        NavigationLink(destination: ListDetailView(list: list, viewModel: viewModel)) {
+                        NavigationLink(value: list) {
                             ListCardView(list: list, viewModel: viewModel)
                         }
                         .buttonStyle(PlainButtonStyle())
@@ -387,7 +384,7 @@ struct UngroupedListsSection: View {
                 
                 LazyVStack(spacing: 8) {
                     ForEach(ungroupedLists) { list in
-                        NavigationLink(destination: ListDetailView(list: list, viewModel: viewModel)) {
+                        NavigationLink(value: list) {
                             ListCardView(list: list, viewModel: viewModel)
                         }
                         .buttonStyle(PlainButtonStyle())

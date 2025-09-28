@@ -236,13 +236,26 @@ struct CalendarDayView: View {
     let isSelected: Bool
     let isToday: Bool
     
-    private var intensity: Double {
+    private var baseThemeColor: Color {
+        // Use the current time section's primary color to match the app's theme
+        let hour = Calendar.current.component(.hour, from: Date())
+        let section = TaskListView.TimeSection.allCases.first { $0.hourRange.contains(hour) } ?? .morning
+        return section.primarySkyColor
+    }
+    
+    private var bucketedColor: Color {
+        // Buckets: 0 = no color/gray, 1-3 light, 4-6 medium, 7-10 dark, 10+ darkest
         switch taskCount {
-        case 0: return 0.0
-        case 1: return 0.3
-        case 2: return 0.5
-        case 3: return 0.7
-        default: return 1.0
+        case 0:
+            return Color(.systemGray5)
+        case 1...3:
+            return baseThemeColor.opacity(0.3)
+        case 4...6:
+            return baseThemeColor.opacity(0.6)
+        case 7...10:
+            return baseThemeColor.opacity(0.85)
+        default:
+            return baseThemeColor // full/intense
         }
     }
     
@@ -250,14 +263,6 @@ struct CalendarDayView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "d"
         return formatter.string(from: date)
-    }
-    
-    // Get the appropriate theme based on the primary task time or current time
-    private var dominantTimeTheme: TaskListView.TimeSection {
-        // For simplicity, we'll use the current hour to determine theme
-        // In a more sophisticated version, you'd analyze the actual task times
-        let hour = Calendar.current.component(.hour, from: Date())
-        return TaskListView.TimeSection.allCases.first { $0.hourRange.contains(hour) } ?? .morning
     }
     
     var body: some View {
@@ -279,7 +284,7 @@ struct CalendarDayView: View {
         }
         .scaleEffect(isSelected ? 1.1 : 1.0)
         .shadow(
-            color: isSelected ? dominantTimeTheme.primarySkyColor.opacity(0.3) : .clear,
+            color: isSelected ? bucketedColor.opacity(0.3) : .clear,
             radius: isSelected ? 8 : 0
         )
         .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSelected)
@@ -288,36 +293,30 @@ struct CalendarDayView: View {
     private var backgroundColorWithIntensity: Color {
         if !isCurrentMonth {
             return Color(.systemGray6)
-        } else if taskCount == 0 {
-            return Color(.systemGray5)
         } else {
-            // Use the dominant time theme with intensity
-            return dominantTimeTheme.primarySkyColor.opacity(intensity)
+            return bucketedColor
         }
     }
     
     private var textColor: Color {
-        if !isCurrentMonth {
-            return .secondary
-        } else if taskCount == 0 {
+        if !isCurrentMonth { return .secondary }
+        switch taskCount {
+        case 0:
             return .primary
-        } else if intensity > 0.5 {
-            // High intensity background needs white text
+        case 1...6:
+            return .primary
+        default: // 7-10 dark, 10+ darkest
             return .white
-        } else {
-            return .primary
         }
     }
     
     private var shadowColor: Color {
-        if taskCount > 0 && intensity > 0.3 {
-            return .black.opacity(0.3)
-        }
+        if taskCount >= 7 { return .black.opacity(0.25) }
         return .clear
     }
     
     private var shadowIntensity: CGFloat {
-        intensity > 0.5 ? 1 : 0
+        taskCount >= 7 ? 1 : 0
     }
 }
 
